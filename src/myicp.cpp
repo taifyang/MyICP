@@ -1,13 +1,13 @@
 /******************************************************************************** 
 ** @Copyright(c) $year$ $registered organization$ All Rights Reserved.
-** @auth£º taify
-** @date£º 2021/01/12
-** @desc£º myicpÔ´ÎÄ¼ş
+** @authï¼š taify
+** @dateï¼š 2021/01/12
+** @descï¼š myicpæºæ–‡ä»¶
 ** @Ver : V1.0.0
 *********************************************************************************/
 
-#include "MyICP.h"
-#include "MyICP_helpers.h"
+#include "myicp.h"
+#include "myicp_helpers.h"
 
 MyICP::MyICP()
 {
@@ -73,7 +73,7 @@ void MyICP::registration()
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud_mid(new pcl::PointCloud<pcl::PointXYZ>());
 
-	//½¨Á¢kdÊ÷
+	//å»ºç«‹kdæ ‘
 	pcl::search::KdTree<pcl::PointXYZ>::Ptr kdtree(new pcl::search::KdTree<pcl::PointXYZ>);
 	kdtree->setInputCloud(target_cloud_downsampled);
 
@@ -81,32 +81,32 @@ void MyICP::registration()
 	Eigen::Matrix4f H_final = H_12;
 	int iters = 0;
 
-	//¿ªÊ¼µü´ú£¬Ö±µ½Âú×ãÌõ¼ş
+	//å¼€å§‹è¿­ä»£ï¼Œç›´åˆ°æ»¡è¶³æ¡ä»¶
 	while (error > min_error && iters < max_iters)
 	{
 		iters++;
 		double last_error = error;
 
-		//¼ÆËã×îÁÚ½üµã¶Ô
+		//è®¡ç®—æœ€é‚»è¿‘ç‚¹å¯¹
 		calNearestPointPairs(H_12, source_cloud_downsampled, target_cloud_downsampled, target_cloud_mid, kdtree, error);
 
 		if (last_error - error < epsilon)
 			break;
 
-		//¼ÆËãµãÔÆÖĞĞÄ×ø±ê
+		//è®¡ç®—ç‚¹äº‘ä¸­å¿ƒåæ ‡
 		Eigen::Vector4f source_centroid, target_centroid_mid;
 		pcl::compute3DCentroid(*source_cloud_downsampled, source_centroid);
 		pcl::compute3DCentroid(*target_cloud_mid, target_centroid_mid);
 
-		//È¥ÖĞĞÄ»¯
+		//å»ä¸­å¿ƒåŒ–
 		Eigen::MatrixXf souce_cloud_demean, target_cloud_demean;
 		pcl::demeanPointCloud(*source_cloud_downsampled, source_centroid, souce_cloud_demean);
 		pcl::demeanPointCloud(*target_cloud_mid, target_centroid_mid, target_cloud_demean);
 
-		//¼ÆËãW=q1*q2^T
+		//è®¡ç®—W=q1*q2^T
 		Eigen::Matrix3f W = (souce_cloud_demean*target_cloud_demean.transpose()).topLeftCorner(3, 3);
 
-		//SVD·Ö½âµÃµ½ĞÂµÄĞı×ª¾ØÕóºÍÆ½ÒÆ¾ØÕó
+		//SVDåˆ†è§£å¾—åˆ°æ–°çš„æ—‹è½¬çŸ©é˜µå’Œå¹³ç§»çŸ©é˜µ
 		Eigen::JacobiSVD<Eigen::Matrix3f> svd(W, Eigen::ComputeFullU | Eigen::ComputeFullV);
 		Eigen::Matrix3f U = svd.matrixU();
 		Eigen::Matrix3f V = svd.matrixV();
@@ -120,7 +120,7 @@ void MyICP::registration()
 		R_12 = V* U.transpose();
 		T_12 = target_centroid_mid.head(3) - R_12*source_centroid.head(3);
 		H_12 << R_12, T_12, 0, 0, 0, 1;
-		H_final = H_12*H_final; //¸üĞÂ±ä»»¾ØÕó
+		H_final = H_12*H_final; //æ›´æ–°å˜æ¢çŸ©é˜µ
 
 		std::cout << "iters:"  << iters << "  "<< "error:" << error << std::endl;
 	}
@@ -130,7 +130,7 @@ void MyICP::registration()
 void MyICP::saveICPCloud(const std::string filename)
 {
 	icp_cloud.reset(new pcl::PointCloud<pcl::PointXYZ>);
-	pcl::transformPointCloud(*source_cloud, *icp_cloud, transformation_matrix); //µãÔÆ±ä»»
+	pcl::transformPointCloud(*source_cloud, *icp_cloud, transformation_matrix); //ç‚¹äº‘å˜æ¢
 	pcl::io::savePCDFileBinary(filename, *icp_cloud);
 }
 
@@ -145,7 +145,7 @@ void MyICP::getScore()
 	pcl::KdTreeFLANN <pcl::PointXYZ> kdtree;
 	kdtree.setInputCloud(target_cloud);
 
-#pragma omp parallel for reduction(+:fitness_score) //²ÉÓÃopenmmp¼ÓËÙ
+#pragma omp parallel for reduction(+:fitness_score) //é‡‡ç”¨openmmpåŠ é€Ÿ
 	for (int i = 0; i < icp_cloud->points.size(); ++i)
 	{
 		std::vector<int> nn_indices(1);
@@ -160,9 +160,9 @@ void MyICP::getScore()
 void MyICP::visualize()
 {
 	pcl::visualization::PCLVisualizer viewer("registration Viewer");
-	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> src_h(source_cloud, 0, 255, 0); 	//Ô­Ê¼µãÔÆÂÌÉ«
-	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> tgt_h(target_cloud, 255, 0, 0); 	//Ä¿±êµãÔÆºìÉ«
-	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> final_h(icp_cloud, 0, 0, 255); 	//Æ¥ÅäºÃµÄµãÔÆÀ¶É«
+	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> src_h(source_cloud, 0, 255, 0); 	//åŸå§‹ç‚¹äº‘ç»¿è‰²
+	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> tgt_h(target_cloud, 255, 0, 0); 	//ç›®æ ‡ç‚¹äº‘çº¢è‰²
+	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> final_h(icp_cloud, 0, 0, 255); 	//åŒ¹é…å¥½çš„ç‚¹äº‘è“è‰²
 
 	viewer.setBackgroundColor(255, 255, 255);
 	viewer.addPointCloud(source_cloud, src_h, "source cloud");
